@@ -36,6 +36,45 @@ jobs:
           CHECK_CONCURRENCY: "32"
           CHECK_TIMEOUT: "90"
 
+      - name: Merge extra nodes into subscription
+        run: |
+          python - <<'PY'
+          import base64, pathlib, urllib.request
+
+          url = "https://cf.shurengui.xyz/sub?token=7be04d7e783acbbdf3f83f9557ba6cc4"
+          lines = []
+          try:
+              raw = urllib.request.urlopen(url, timeout=30).read().decode().strip()
+              try:
+                  lines = base64.b64decode(raw).decode().splitlines()
+              except Exception:
+                  lines = raw.splitlines()
+              print(f"worker nodes: {len(lines)}")
+          except Exception as e:
+              print(f"fetch sub failed (continuing with extra only): {e}")
+
+          extra = pathlib.Path("extra_nodes.txt")
+          if extra.exists():
+              add = [x.strip() for x in extra.read_text(encoding="utf-8").splitlines() if x.strip()]
+              print(f"extra nodes: {len(add)}")
+              lines += add
+
+          seen, out = set(), []
+          for l in lines:
+              l = l.strip()
+              if not l or l.startswith("#"):
+                  continue
+              if l.startswith(("vless://", "vmess://", "trojan://", "ss://")) and l not in seen:
+                  seen.add(l)
+                  out.append(l)
+
+          if out:
+              p = pathlib.Path("public/sub.txt")
+              p.parent.mkdir(parents=True, exist_ok=True)
+              p.write_text(base64.b64encode(("\n".join(out) + "\n").encode()).decode(), encoding="ascii")
+              print(f"merged {len(out)} nodes -> public/sub.txt")
+          PY
+
       - name: Publish to gh-pages branch
         uses: peaceiris/actions-gh-pages@v4
         with:
