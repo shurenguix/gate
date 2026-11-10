@@ -44,7 +44,8 @@ jobs:
           url = "https://cf.shurengui.xyz/sub?token=7be04d7e783acbbdf3f83f9557ba6cc4"
           lines = []
           try:
-              raw = urllib.request.urlopen(url, timeout=30).read().decode().strip()
+              req = urllib.request.Request(url, headers={"User-Agent": "v2rayN/6.23"})
+              raw = urllib.request.urlopen(req, timeout=30).read().decode().strip()
               try:
                   lines = base64.b64decode(raw).decode().splitlines()
               except Exception:
